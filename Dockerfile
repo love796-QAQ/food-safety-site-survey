@@ -1,6 +1,11 @@
 # 1) Build frontend
 FROM node:18-alpine AS fe-build
 WORKDIR /app
+RUN apk add --no-cache libc6-compat
+# 缓解 npm 安装失败：关闭审计/资助，放宽 peer deps 严格性
+ENV npm_config_fund=false \
+    npm_config_audit=false \
+    npm_config_legacy_peer_deps=true
 # 仅拷贝 npm 所需文件，避免通配符未命中报错
 COPY package*.json ./
 # 有 lockfile 用 ci，否则用 i
@@ -11,6 +16,10 @@ RUN npm run build
 # 2) Build server (TypeScript)
 FROM node:18-alpine AS be-build
 WORKDIR /app/server
+RUN apk add --no-cache libc6-compat
+ENV npm_config_fund=false \
+    npm_config_audit=false \
+    npm_config_legacy_peer_deps=true
 # 仅拷贝 npm 所需文件
 COPY server/package*.json ./
 # 有 lockfile 用 ci，否则用 i
