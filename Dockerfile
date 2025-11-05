@@ -1,18 +1,20 @@
 # 1) Build frontend
 FROM node:18-alpine AS fe-build
 WORKDIR /app
-COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
-# 优先使用 npm ci；若无 lockfile 则回退 npm i（避免寻找未安装的 yarn/pnpm）
-RUN npm ci --no-audit --no-fund || npm i --no-audit --no-fund
+# 仅拷贝 npm 所需文件，避免通配符未命中报错
+COPY package*.json ./
+# 有 lockfile 用 ci，否则用 i
+RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm i --no-audit --no-fund; fi
 COPY . .
 RUN npm run build
 
 # 2) Build server (TypeScript)
 FROM node:18-alpine AS be-build
 WORKDIR /app/server
-COPY server/package.json server/package-lock.json* server/yarn.lock* server/pnpm-lock.yaml* ./
-# 同上逻辑
-RUN npm ci --no-audit --no-fund || npm i --no-audit --no-fund
+# 仅拷贝 npm 所需文件
+COPY server/package*.json ./
+# 有 lockfile 用 ci，否则用 i
+RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm i --no-audit --no-fund; fi
 COPY server ./
 RUN npm run build
 
