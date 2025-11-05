@@ -35,6 +35,7 @@ WORKDIR /app
 # server files
 COPY --from=be-build /app/server/dist ./server/dist
 COPY --from=be-build /app/server/package.json ./server/package.json
+COPY --from=be-build /app/server/node_modules ./server/node_modules
 
 # frontend dist -> server/public
 COPY --from=fe-build /app/dist ./server/public
