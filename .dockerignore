@@ -1,0 +1,14 @@
+node_modules
+server/node_modules
+dist
+server/dist
+server/data
+.git
+.gitignore
+.DS_Store
+*.log
+npm-debug.log*
+yarn-error.log*
+.pnpm-store
+**/.env*
+

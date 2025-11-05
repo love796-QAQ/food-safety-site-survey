@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  app:
+    # 方式一：使用远程镜像（推荐在CI已推送到GHCR后）
+    image: ghcr.io/OWNER_REPO/food-safety-site-survey:latest
+    # 方式二：本地构建（取消上面的 image，启用以下 build）
+    # build: .
+    container_name: fsss
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      # - NODE_ENV=production
+    volumes:
+      - ./server_data:/app/server/data
+    restart: unless-stopped
+
+volumes:
+  # 如不想把数据放在工作目录，可改为命名卷：
+  # fsss_data:
+  # 并把上面的 volumes 改为：
+  #  - fsss_data:/app/server/data
+

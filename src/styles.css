@@ -1,0 +1,43 @@
+:root {
+  --bg: #0f172a;
+  --panel: #111827;
+  --muted: #94a3b8;
+  --text: #e5e7eb;
+  --primary: #22c55e;
+  --accent: #38bdf8;
+  --danger: #ef4444;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+.app { display: grid; grid-template-rows: 56px 1fr; height: 100%; }
+.topbar { display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--panel); border-bottom: 1px solid #1f2937; }
+.topbar .title { font-weight: 600; margin-right: 12px; }
+.topbar button, .topbar label { background: #1f2937; color: var(--text); border: 1px solid #334155; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.topbar button:hover, .topbar label:hover { border-color: var(--accent); }
+.topbar .spacer { flex: 1; }
+
+.content { display: grid; grid-template-columns: 320px 1fr; min-height: 0; }
+.sidebar { background: var(--panel); border-right: 1px solid #1f2937; padding: 12px; overflow: auto; }
+.sidebar h3 { margin: 8px 0; font-size: 14px; color: var(--muted); font-weight: 600; }
+.sidebar .group { border: 1px solid #1f2937; border-radius: 10px; padding: 10px; margin-bottom: 12px; }
+.sidebar input, .sidebar select, .sidebar textarea { width: 100%; background: #0b1220; color: var(--text); border: 1px solid #334155; border-radius: 8px; padding: 8px; }
+.sidebar .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid #334155; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
+.chip.active { border-color: var(--accent); background: #0b2a3a; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > * { flex: 1; }
+.danger { color: var(--danger); }
+.muted { color: var(--muted); font-size: 12px; }
+
+.stage-wrap { position: relative; background: #0b1220; }
+.stage-hint { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.5); padding: 4px 8px; border-radius: 6px; color: #cbd5e1; font-size: 12px; pointer-events: none; }
+
+@media (max-width: 900px) {
+  .content { grid-template-columns: 1fr; }
+  .sidebar { order: 2; }
+}
+
+
