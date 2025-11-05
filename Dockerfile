@@ -16,7 +16,7 @@ RUN npm run build
 # 2) Build server (TypeScript)
 FROM node:18-alpine AS be-build
 WORKDIR /app/server
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat python3 make g++
 ENV npm_config_fund=false \
     npm_config_audit=false \
     npm_config_legacy_peer_deps=true
