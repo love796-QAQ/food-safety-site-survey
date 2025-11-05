@@ -2,7 +2,8 @@
 FROM node:18-alpine AS fe-build
 WORKDIR /app
 COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
-RUN npm ci || yarn --frozen-lockfile || pnpm i --frozen-lockfile
+# 优先使用 npm ci；若无 lockfile 则回退 npm i（避免寻找未安装的 yarn/pnpm）
+RUN npm ci --no-audit --no-fund || npm i --no-audit --no-fund
 COPY . .
 RUN npm run build
 
@@ -10,7 +11,8 @@ RUN npm run build
 FROM node:18-alpine AS be-build
 WORKDIR /app/server
 COPY server/package.json server/package-lock.json* server/yarn.lock* server/pnpm-lock.yaml* ./
-RUN npm ci || yarn --frozen-lockfile || pnpm i --frozen-lockfile
+# 同上逻辑
+RUN npm ci --no-audit --no-fund || npm i --no-audit --no-fund
 COPY server ./
 RUN npm run build
 
