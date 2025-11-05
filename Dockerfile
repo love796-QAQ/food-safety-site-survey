@@ -1,7 +1,6 @@
 # 1) Build frontend
-FROM node:18-alpine AS fe-build
+FROM node:18-bookworm-slim AS fe-build
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
 # 缓解 npm 安装失败：关闭审计/资助，放宽 peer deps 严格性
 ENV npm_config_fund=false \
     npm_config_audit=false \
@@ -14,9 +13,10 @@ COPY . .
 RUN npm run build
 
 # 2) Build server (TypeScript)
-FROM node:18-alpine AS be-build
+FROM node:18-bookworm-slim AS be-build
 WORKDIR /app/server
-RUN apk add --no-cache libc6-compat python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 make g++ ca-certificates && rm -rf /var/lib/apt/lists/*
 ENV npm_config_fund=false \
     npm_config_audit=false \
     npm_config_legacy_peer_deps=true
@@ -28,7 +28,7 @@ COPY server ./
 RUN npm run build
 
 # 3) Runtime
-FROM node:18-alpine
+FROM node:18-bookworm-slim
 ENV NODE_ENV=production
 WORKDIR /app
 
