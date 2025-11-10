@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
 import type { Camera, ProjectData } from '@/types'
-import { createCamera, deleteCameraApi, getCameras, getConfig, getProject, updateCameraApi, updateConfig, updateProject, uploadFile } from '@/api/client'
+import { createCamera, deleteCameraApi, getCameras, getProject, updateCameraApi, updateConfig } from '@/api/client'
 
 interface ProjectState {
   floorplanDataUrl: string | null
@@ -23,6 +23,15 @@ interface ProjectState {
 }
 
 const STORAGE_KEY = 'food-safety-site-survey@v1'
+
+function selectPersistState(state: ProjectState): Pick<ProjectState, 'floorplanDataUrl' | 'cameras' | 'statuses' | 'analysisTypes'> {
+  return {
+    floorplanDataUrl: state.floorplanDataUrl,
+    cameras: state.cameras,
+    statuses: state.statuses,
+    analysisTypes: state.analysisTypes
+  }
+}
 
 function loadInitialState(): Pick<ProjectState, 'floorplanDataUrl' | 'cameras' | 'statuses' | 'analysisTypes'> {
   try {
@@ -54,10 +63,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   selectedCameraId: null,
   projectId: 'default',
 
-  setFloorplan: async (dataUrl) => {
-    if (dataUrl === null) return set({ floorplanDataUrl: null })
+  setFloorplan: (dataUrl) => {
     set({ floorplanDataUrl: dataUrl })
-    // Best-effort: do nothing here; actual upload handled via App when user selects file (moved there)
+    persist(selectPersistState(get()))
   },
 
   addCameraAt: async (x, y) => {
@@ -74,19 +82,23 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
     // optimistic
     set({ cameras: [...state.cameras, cam], selectedCameraId: cam.id })
+    persist(selectPersistState(get()))
     const resp = await createCamera(state.projectId, cam)
     set({ cameras: get().cameras.map(c => c.id === cam.id ? { ...c, id: resp.id } : c), selectedCameraId: resp.id })
+    persist(selectPersistState(get()))
   },
 
   updateCamera: async (id, patch) => {
     const prev = get().cameras
     set({ cameras: prev.map(c => c.id === id ? { ...c, ...patch } : c) })
+    persist(selectPersistState(get()))
     await updateCameraApi(id, patch)
   },
 
   removeCamera: async (id) => {
     const state = get()
     set({ cameras: state.cameras.filter(c => c.id !== id), selectedCameraId: state.selectedCameraId === id ? null : state.selectedCameraId })
+    persist(selectPersistState(get()))
     await deleteCameraApi(id)
   },
 
@@ -94,11 +106,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   setStatuses: async (items) => {
     set({ statuses: items })
+    persist(selectPersistState(get()))
     await updateConfig(get().projectId, { statuses: items })
   },
 
   setAnalysisTypes: async (items) => {
     set({ analysisTypes: items })
+    persist(selectPersistState(get()))
     await updateConfig(get().projectId, { analysisTypes: items })
   },
 
@@ -124,6 +138,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const p = await getProject(projectId)
     const cams = await getCameras(projectId)
     set({ floorplanDataUrl: p.floorplanUrl || null, statuses: p.statuses, analysisTypes: p.analysisTypes, cameras: cams })
+    persist(selectPersistState(get()))
   }
 }))
 
