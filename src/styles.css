@@ -32,7 +32,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-san
 .danger { color: var(--danger); }
 .muted { color: var(--muted); font-size: 12px; }
 
-.stage-wrap { position: relative; background: #0b1220; }
+.stage-wrap { position: relative; background: #0b1220; display: flex; min-height: 0; }
+.stage-wrap > * { flex: 1; min-height: 0; }
 .stage-hint { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.5); padding: 4px 8px; border-radius: 6px; color: #cbd5e1; font-size: 12px; pointer-events: none; }
 
 @media (max-width: 900px) {
