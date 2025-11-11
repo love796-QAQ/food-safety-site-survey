@@ -19,6 +19,21 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 
+type CameraRow = {
+  id: string
+  project_id: string
+  name: string
+  x: number
+  y: number
+  rotation_deg: number
+  fov_angle_deg: number
+  fov_radius: number
+  status: string | null
+  analyses: string
+}
+
+const selectCamerasStmt = db.prepare<[string], CameraRow>('SELECT * FROM cameras WHERE project_id = ?')
+
 db.exec(`
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
@@ -125,9 +140,17 @@ app.put('/api/projects/:id/config', async (req: any) => {
 app.get('/api/projects/:id/cameras', async (req: any) => {
   const id = req.params.id
   ensureProject(id)
-  const rows = db.prepare('SELECT * FROM cameras WHERE project_id = ?').all(id)
-  return rows.map(r => ({
-    id: r.id, name: r.name, x: r.x, y: r.y, rotationDeg: r.rotation_deg, fovAngleDeg: r.fov_angle_deg, fovRadius: r.fov_radius, status: r.status, analyses: JSON.parse(r.analyses)
+  const rows = selectCamerasStmt.all(id)
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    x: row.x,
+    y: row.y,
+    rotationDeg: row.rotation_deg,
+    fovAngleDeg: row.fov_angle_deg,
+    fovRadius: row.fov_radius,
+    status: row.status,
+    analyses: JSON.parse(row.analyses)
   }))
 })
 
