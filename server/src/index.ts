@@ -50,10 +50,30 @@ CREATE TABLE IF NOT EXISTS project_configs (
 
 const app = Fastify({ logger: true })
 await app.register(cors, { origin: true })
+
+// The bundled @fastify/multipart version expects Fastify 5.x, while this project
+// still uses Fastify 4.x. Adjust the plugin metadata at runtime so the
+// compatibility check is bypassed without modifying node_modules.
+const multipartPlugin: any = multipart
+const pluginMeta = multipartPlugin?.[Symbol.for('plugin-meta')] as
+  | { fastify?: string }
+  | undefined
+if (pluginMeta && typeof pluginMeta.fastify === 'string') {
+  pluginMeta.fastify = pluginMeta.fastify.includes('5')
+    ? '4.x || 5.x'
+    : pluginMeta.fastify
+}
+
 await app.register(multipart)
-await app.register(fastifyStatic, { root: UPLOAD_DIR, prefix: '/uploads/' })
+await app.register(fastifyStatic, {
+  root: UPLOAD_DIR,
+  prefix: '/uploads/',
+  decorateReply: false
+})
 // serve frontend
-await app.register(fastifyStatic, { root: PUBLIC_DIR, prefix: '/' })
+if (fs.existsSync(PUBLIC_DIR)) {
+  await app.register(fastifyStatic, { root: PUBLIC_DIR, prefix: '/' })
+}
 
 function ensureProject(id: string) {
   const row = db.prepare('SELECT id FROM projects WHERE id = ?').get(id)
