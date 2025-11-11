@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { v4 as uuid } from 'uuid'
 import type { Camera, ProjectData } from '@/types'
 import { createCamera, deleteCameraApi, getCameras, getProject, updateCameraApi, updateConfig } from '@/api/client'
 
@@ -23,6 +22,13 @@ interface ProjectState {
 }
 
 const STORAGE_KEY = 'food-safety-site-survey@v1'
+
+const generateCameraId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`
+}
 
 function selectPersistState(state: ProjectState): Pick<ProjectState, 'floorplanDataUrl' | 'cameras' | 'statuses' | 'analysisTypes'> {
   return {
@@ -71,7 +77,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   addCameraAt: async (x, y) => {
     const state = get()
     const cam: Camera = {
-      id: uuid(),
+      id: generateCameraId(),
       name: '摄像头',
       x, y,
       rotationDeg: 0,
