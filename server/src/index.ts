@@ -6,9 +6,12 @@ import Database from 'better-sqlite3'
 import { nanoid } from 'nanoid'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const PORT = Number(process.env.PORT || 8080)
-const ROOT = path.resolve(process.cwd())
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const ROOT = path.resolve(__dirname, '..')
 const DATA_DIR = path.join(ROOT, 'data')
 const UPLOAD_DIR = path.join(DATA_DIR, 'uploads')
 const PUBLIC_DIR = path.join(ROOT, 'public')
