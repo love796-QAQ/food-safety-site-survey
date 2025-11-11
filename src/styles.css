@@ -36,6 +36,65 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-san
 .stage-wrap > * { flex: 1; min-height: 0; }
 .stage-hint { position: absolute; left: 8px; bottom: 8px; background: rgba(0,0,0,.5); padding: 4px 8px; border-radius: 6px; color: #cbd5e1; font-size: 12px; pointer-events: none; }
 
+.camera-overlay {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #e2e8f0;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+  pointer-events: auto;
+  z-index: 5;
+}
+
+.camera-overlay.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+.camera-overlay-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.camera-overlay-controls label,
+.overlay-checkboxes span {
+  font-weight: 600;
+  color: #cbd5e1;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.camera-overlay select {
+  background: #0f172a;
+  border: 1px solid #1f2a40;
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: inherit;
+}
+
+.overlay-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overlay-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+}
+
 @media (max-width: 900px) {
   .content { grid-template-columns: 1fr; }
   .sidebar { order: 2; }

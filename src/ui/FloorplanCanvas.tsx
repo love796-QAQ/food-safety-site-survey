@@ -3,9 +3,10 @@ import { Stage, Layer, Image as KImage, Group, Wedge, Circle, Arrow, Text } from
 import type { Stage as KonvaStage } from 'konva/lib/Stage'
 import useImage from 'use-image'
 import { useProjectStore } from '@/store/useProjectStore'
+import type { Camera } from '@/types'
 
 export function FloorplanCanvas() {
-  const { floorplanDataUrl, cameras, addCameraAt, updateCamera, selectCamera, selectedCameraId } = useProjectStore()
+  const { floorplanDataUrl, cameras, addCameraAt, updateCamera, selectCamera, selectedCameraId, statuses, analysisTypes } = useProjectStore()
   const [img] = useImage(floorplanDataUrl || '', 'anonymous')
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -192,29 +193,74 @@ export function FloorplanCanvas() {
           ))}
         </Layer>
       </Stage>
+      {cameras.map(cam => (
+        selectedCameraId === cam.id ? (
+          <CameraOverlay
+            key={`overlay-${cam.id}`}
+            camera={cam}
+            selected
+            stageScale={scale}
+            stagePos={pos}
+            statuses={statuses}
+            analysisTypes={analysisTypes}
+            onChange={(patch) => updateCamera(cam.id, patch)}
+          />
+        ) : null
+      ))}
       <div className="stage-hint">双指缩放/拖拽移动；点击空白添加摄像头；拖拽扇形或箭头调整</div>
     </div>
   )
 }
 
 function CameraNode({ camera, onChange, onSelect, selected }: {
-  camera: { id: string; name: string; x: number; y: number; rotationDeg: number; fovAngleDeg: number; fovRadius: number; status: string | null; analyses: string[] }
-  onChange: (patch: Partial<typeof camera>) => void
+  camera: Camera
+  onChange: (patch: Partial<Camera>) => void
   onSelect: () => void
   selected: boolean
 }) {
+  const wedgeDragging = useRef(false)
   const color = selected ? '#38bdf8' : '#22c55e'
   const { fovAngleDeg, fovRadius, rotationDeg } = camera
   const startAngle = rotationDeg - fovAngleDeg / 2
   const arrowLength = Math.max(40, Math.min(fovRadius * 0.8, 200))
+  const rotationRad = rotationDeg * Math.PI / 180
+  const labelDistance = fovRadius + 40
+  const labelX = Math.cos(rotationRad) * labelDistance
+  const labelY = Math.sin(rotationRad) * labelDistance
+  const statusText = camera.status ? `状态：${camera.status}` : '状态：未选择'
+  const analysesText = camera.analyses.length ? `AI：${camera.analyses.join('、')}` : 'AI：未选择'
 
-  function stopPropagation(e: any) {
+  function stopPropagation(e: any, select = true) {
     e.cancelBubble = true
-    onSelect()
+    if (select) {
+      onSelect()
+    }
   }
 
   function resetHandlePosition(node: any) {
     node.position({ x: 0, y: 0 })
+  }
+
+  function getLocalPointer(e: any) {
+    const stage = e.target.getStage()
+    if (!stage) return null
+    const pointer = stage.getPointerPosition()
+    if (!pointer) return null
+    const transform = e.target.getParent().getAbsoluteTransform().copy()
+    transform.invert()
+    const pos = transform.point(pointer)
+    return pos
+  }
+
+  function updateFromPointer(e: any) {
+    const pos = getLocalPointer(e)
+    if (!pos) return
+    const { x, y } = pos
+    const r = Math.sqrt(x * x + y * y)
+    const deg = Math.atan2(y, x) * 180 / Math.PI
+    const normalizedDeg = ((deg % 360) + 360) % 360
+    const clampedRadius = Math.max(40, Math.min(1000, r))
+    onChange({ rotationDeg: normalizedDeg, fovRadius: clampedRadius })
   }
 
   return (
@@ -239,6 +285,41 @@ function CameraNode({ camera, onChange, onSelect, selected }: {
         stroke={color}
         strokeWidth={1}
         listening={true}
+        onMouseDown={(e) => {
+          stopPropagation(e)
+          wedgeDragging.current = true
+          updateFromPointer(e)
+        }}
+        onMouseMove={(e) => {
+          if (!wedgeDragging.current) return
+          stopPropagation(e, false)
+          updateFromPointer(e)
+        }}
+        onMouseUp={(e) => {
+          stopPropagation(e, false)
+          wedgeDragging.current = false
+        }}
+        onMouseLeave={() => {
+          wedgeDragging.current = false
+        }}
+        onTouchStart={(e) => {
+          stopPropagation(e)
+          wedgeDragging.current = true
+          updateFromPointer(e)
+        }}
+        onTouchMove={(e) => {
+          if (!wedgeDragging.current) return
+          e.evt.preventDefault()
+          stopPropagation(e, false)
+          updateFromPointer(e)
+        }}
+        onTouchEnd={(e) => {
+          stopPropagation(e, false)
+          wedgeDragging.current = false
+        }}
+        onTouchCancel={() => {
+          wedgeDragging.current = false
+        }}
       />
       <Arrow
         x={0}
@@ -267,6 +348,10 @@ function CameraNode({ camera, onChange, onSelect, selected }: {
         fill={color}
       />
       <Text x={12} y={-8} fontSize={14} fill="#e5e7eb" text={camera.name} />
+      <Group x={labelX} y={labelY} listening={false}>
+        <Circle radius={4} fill={selected ? '#38bdf8' : '#22c55e'} opacity={0.6} />
+        <Text x={8} y={-6} fontSize={12} fill="#f1f5f9" text={`${statusText}\n${analysesText}`} lineHeight={1.2} />
+      </Group>
       {/* 角度与半径手柄 */}
       <Circle x={Math.cos((startAngle + fovAngleDeg) * Math.PI/180) * fovRadius} y={Math.sin((startAngle + fovAngleDeg) * Math.PI/180) * fovRadius} radius={6} fill="#f59e0b" draggable
         onMouseDown={stopPropagation}
@@ -285,6 +370,81 @@ function CameraNode({ camera, onChange, onSelect, selected }: {
       />
     </Group>
   )
+}
+
+function CameraOverlay({
+  camera,
+  selected,
+  stageScale,
+  stagePos,
+  statuses,
+  analysisTypes,
+  onChange
+}: {
+  camera: Pick<Camera, 'id' | 'x' | 'y' | 'status' | 'analyses' | 'rotationDeg' | 'fovRadius'>
+  selected: boolean
+  stageScale: number
+  stagePos: { x: number; y: number }
+  statuses: string[]
+  analysisTypes: string[]
+  onChange: (patch: Partial<Camera>) => void
+}) {
+  const anchor = getOverlayAnchor(camera)
+  const left = stagePos.x + anchor.x * stageScale
+  const top = stagePos.y + anchor.y * stageScale
+
+  const summaryStatus = camera.status ?? '未选择'
+  const summaryAnalyses = camera.analyses.length ? camera.analyses.join('、') : '未选择'
+
+  return (
+    <div
+      className={"camera-overlay" + (selected ? ' selected' : '')}
+      style={{ left: left, top: top }}
+    >
+      <div className="camera-overlay-summary">
+        <div><strong>状态：</strong>{summaryStatus}</div>
+        <div><strong>AI：</strong>{summaryAnalyses}</div>
+      </div>
+      {selected && (
+        <div className="camera-overlay-controls">
+          <label>
+            <span>状态</span>
+            <select value={camera.status ?? ''} onChange={(e) => onChange({ status: e.target.value || null })}>
+              <option value="">未选择</option>
+              {statuses.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <div className="overlay-checkboxes">
+            <span>AI分析</span>
+            {analysisTypes.map(a => {
+              const active = camera.analyses.includes(a)
+              return (
+                <label key={a}>
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={() => {
+                      const next = active ? camera.analyses.filter(x => x !== a) : [...camera.analyses, a]
+                      onChange({ analyses: next })
+                    }}
+                  />
+                  {a}
+                </label>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function getOverlayAnchor(cam: Pick<Camera, 'x' | 'y' | 'rotationDeg' | 'fovRadius'>) {
+  const theta = cam.rotationDeg * Math.PI / 180
+  const dist = cam.fovRadius + 60
+  return { x: cam.x + Math.cos(theta) * dist, y: cam.y + Math.sin(theta) * dist }
 }
 
 
